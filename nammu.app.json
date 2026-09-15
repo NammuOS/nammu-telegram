@@ -1,0 +1,43 @@
+{
+  "manifestVersion": 1,
+  "id": "os.nammu.telegram",
+  "name": "Telegram",
+  "version": "1.0.0",
+  "runtime": "integration",
+  "entry": "app/index.html",
+  "minNammuVersion": "0.8.2",
+  "dataSchemaVersion": 1,
+  "permissions": [
+    "integration.web-surfaces",
+    "migration.legacy-storage",
+    "migration.integration-profile"
+  ],
+  "legacyStorageKeys": ["nammu_telegram_tabs"],
+  "publisher": "nammu-official",
+  "publisherKeyId": "nammu-official-2026-09",
+  "capabilities": [
+    {
+      "type": "web-surface",
+      "name": "telegram-web",
+      "navigation": {
+        "mode": "approved-origins",
+        "origins": [
+          "https://web.telegram.org",
+          "https://telegram.org",
+          "https://t.me"
+        ]
+      },
+      "maxSurfaces": 8,
+      "maxPartitions": 8,
+      "persistentProfile": true
+    }
+  ],
+  "integrationProfileMigrations": [
+    {
+      "id": "telegram-core-v1",
+      "version": 1,
+      "capability": "telegram-web",
+      "profileKey": "telegram"
+    }
+  ]
+}
