@@ -64,9 +64,24 @@ export async function initializeTelegramStorage(app: NammuApp): Promise<Telegram
   const settings = await app.settings.getAll();
   const existing = settings[TELEGRAM_TABS_KEY];
   const legacy = await app.migration.readLegacyStorage(TELEGRAM_TABS_KEY);
+  const discovered = await app.migration.discoverIntegrationProfiles({
+    migrationId: 'telegram-core-v1',
+  });
+  const baseTabs = normalizeTelegramTabs(legacy ?? existing);
+  const known = new Set(baseTabs.map((tab) => tab.id));
+  const recovered = discovered.profileIds
+    .filter((id) => /^telegram-account-[a-z0-9-]+$/.test(id) && !known.has(id))
+    .map((id, index): TelegramAccountTab => ({
+      id,
+      name: `Account ${baseTabs.length + index + 1}`,
+      color: '#64b5f6',
+      unreadCount: 0,
+      isMuted: false,
+      url: TELEGRAM_WEB_URL,
+    }));
+  const tabs = [...baseTabs, ...recovered].slice(0, MAX_TELEGRAM_ACCOUNTS);
 
-  if (legacy !== null) {
-    const tabs = normalizeTelegramTabs(legacy);
+  if (legacy !== null || recovered.length > 0) {
     // Authenticated profiles are adopted before metadata migration is marked
     // complete. A crash can safely replay every operation.
     for (const tab of tabs) {
@@ -77,11 +92,10 @@ export async function initializeTelegramStorage(app: NammuApp): Promise<Telegram
       });
     }
     await app.settings.set(TELEGRAM_TABS_KEY, JSON.stringify(tabs));
-    await app.migration.completeLegacyStorage(TELEGRAM_TABS_KEY);
+    if (legacy !== null) await app.migration.completeLegacyStorage(TELEGRAM_TABS_KEY);
     return tabs;
   }
 
-  const tabs = normalizeTelegramTabs(existing);
   if (existing === undefined) {
     await app.settings.set(TELEGRAM_TABS_KEY, JSON.stringify(tabs));
   }

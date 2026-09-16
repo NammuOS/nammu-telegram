@@ -2,10 +2,10 @@
   "manifestVersion": 1,
   "id": "os.nammu.telegram",
   "name": "Telegram",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "runtime": "integration",
   "entry": "app/index.html",
-  "minNammuVersion": "0.8.2",
+  "minNammuVersion": "0.8.3",
   "dataSchemaVersion": 1,
   "permissions": [
     "integration.web-surfaces",

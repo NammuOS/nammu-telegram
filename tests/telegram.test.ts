@@ -38,6 +38,7 @@ describe('Nammu Telegram package', () => {
       },
       migration: {
         readLegacyStorage: async () => legacy,
+        discoverIntegrationProfiles: async () => ({ profileIds: [] }),
         adoptIntegrationProfile: async ({ partitionKey }: { partitionKey: string }) => {
           order.push(`adopt:${partitionKey}`);
           return { status: 'adopted' as const };
@@ -62,11 +63,45 @@ describe('Nammu Telegram package', () => {
       settings: { getAll: async () => ({ [TELEGRAM_TABS_KEY]: stored }) },
       migration: {
         readLegacyStorage: async () => null,
+        discoverIntegrationProfiles: async () => ({ profileIds: ['telegram-account-1'] }),
         adoptIntegrationProfile: async () => { adoptionCalls += 1; return { status: 'adopted' as const }; },
       },
     } as unknown as NammuApp;
     await initializeTelegramStorage(app);
     expect(adoptionCalls).toBe(0);
+  });
+
+  it('recovers package tabs from approved profile identities when legacy metadata is incomplete', async () => {
+    const adopted: string[] = [];
+    let saved = '';
+    const app = {
+      settings: {
+        getAll: async () => ({
+          [TELEGRAM_TABS_KEY]: JSON.stringify([
+            { id: 'telegram-account-1', name: 'Personal', color: '#2aabee', unreadCount: 0, isMuted: false, url: 'https://web.telegram.org/a/' },
+          ]),
+        }),
+        set: async (_key: string, value: string) => { saved = value; return { success: true }; },
+      },
+      migration: {
+        readLegacyStorage: async () => null,
+        discoverIntegrationProfiles: async () => ({
+          profileIds: ['telegram-account-1', 'telegram-account-a', 'telegram-account-b'],
+        }),
+        adoptIntegrationProfile: async ({ partitionKey }: { partitionKey: string }) => {
+          adopted.push(partitionKey);
+          return { status: 'adopted' as const };
+        },
+      },
+    } as unknown as NammuApp;
+    const tabs = await initializeTelegramStorage(app);
+    expect(tabs.map((tab) => tab.id)).toEqual([
+      'telegram-account-1',
+      'telegram-account-a',
+      'telegram-account-b',
+    ]);
+    expect(adopted).toEqual(tabs.map((tab) => tab.id));
+    expect(JSON.parse(saved)).toHaveLength(3);
   });
 
   it('uses only the SDK surface boundary and declares the narrow T0 contract', () => {
