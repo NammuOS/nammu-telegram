@@ -177,37 +177,37 @@ export default function TelegramApp({ sdk, initialTabs }: Props) {
       </header>
 
       <section className="telegram-workspace">
-        {tabs.map((tab) => (
+        {activeTab && (
           <TelegramSurface
-            key={`${attempt}-${tab.id}`}
+            key={`${attempt}-${activeTab.id}`}
             ref={(surface) => {
-              if (surface) surfaceRefs.current.set(tab.id, surface);
-              else surfaceRefs.current.delete(tab.id);
+              if (surface) surfaceRefs.current.set(activeTab.id, surface);
+              else surfaceRefs.current.delete(activeTab.id);
             }}
             sdk={sdk}
-            partitionKey={tab.id}
-            active={tab.id === activeTabId}
-            muted={tab.isMuted}
+            partitionKey={activeTab.id}
+            active
+            muted={activeTab.isMuted}
             overlayActive={Boolean(editingTab)}
-            url={tab.url}
-            label={`Telegram · ${tab.name}`}
+            url={activeTab.url}
+            label={`Telegram · ${activeTab.name}`}
             onReady={() => {
-              if (tab.id === activeTabId) setFailure('');
+              setFailure('');
             }}
             onState={(snapshot: WebSurfaceSnapshot) => {
               setTabs((current) => {
-                const existing = current.find((entry) => entry.id === tab.id);
+                const existing = current.find((entry) => entry.id === activeTab.id);
                 if (!existing || existing.isMuted === snapshot.isMuted) return current;
                 return current.map((entry) =>
-                  entry.id === tab.id ? { ...entry, isMuted: snapshot.isMuted } : entry,
+                  entry.id === activeTab.id ? { ...entry, isMuted: snapshot.isMuted } : entry,
                 );
               });
             }}
             onFailure={(message) => {
-              if (tab.id === activeTabId) setFailure(message || 'Telegram could not open.');
+              setFailure(message || 'Telegram could not open.');
             }}
           />
-        ))}
+        )}
 
         {failure && (
           <div className="telegram-error" role="alert">

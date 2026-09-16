@@ -125,4 +125,12 @@ describe('Nammu Telegram package', () => {
       expect(source).not.toMatch(/getPlatformCapabilities|geckoEvalChrome|ContextualIdentityService|__TAURI__|src-tauri|web_surface\.rs/);
     }
   });
+
+  it('keeps only the selected Telegram account live', () => {
+    const app = readFileSync(resolve(root, 'src/telegram/TelegramApp.tsx'), 'utf8');
+    expect(app).toContain('{activeTab && (');
+    expect(app).toContain('partitionKey={activeTab.id}');
+    expect(app).toContain('key={`${attempt}-${activeTab.id}`}');
+    expect(app).not.toContain('{tabs.map((tab) => (\n          <TelegramSurface');
+  });
 });
