@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Edit2, Plus, RotateCw, Send, Volume2, VolumeX, X } from 'lucide-react';
+import { AlertTriangle, Edit2, Plus, RotateCw, Volume2, VolumeX, X } from 'lucide-react';
 import type { NammuApp, WebSurfaceSnapshot } from '@nammu/sdk';
 import TelegramSurface, { type TelegramSurfaceHandle } from '../host/WebSurface';
 import {
@@ -27,7 +27,9 @@ export default function TelegramApp({ sdk, initialTabs }: Props) {
   const [editingName, setEditingName] = useState('');
   const [attempt, setAttempt] = useState(1);
   const [failure, setFailure] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const surfaceRefs = useRef(new Map<string, TelegramSurfaceHandle>());
+  const settingsPanelRef = useRef<HTMLDivElement>(null);
   const didMount = useRef(false);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
@@ -41,6 +43,38 @@ export default function TelegramApp({ sdk, initialTabs }: Props) {
       setFailure(error instanceof Error ? error.message : 'Telegram account settings could not be saved.');
     });
   }, [sdk, tabs]);
+
+  useEffect(() => {
+    const action = { id: 'settings', label: 'Telegram settings', icon: 'settings' as const };
+    void sdk.window.setTitlebarAction(action).catch((error) => {
+      setFailure(error instanceof Error ? error.message : 'Telegram settings are unavailable.');
+    });
+    const handleTitlebarAction = (event: Event) => {
+      const id = (event as CustomEvent<{ id?: unknown }>).detail?.id;
+      if (id === action.id) setSettingsOpen((open) => !open);
+    };
+    window.addEventListener('system.window-titlebar-action', handleTitlebarAction);
+    return () => {
+      window.removeEventListener('system.window-titlebar-action', handleTitlebarAction);
+      void sdk.window.setTitlebarAction(null).catch(() => {});
+    };
+  }, [sdk]);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const dismiss = (event: PointerEvent) => {
+      if (!settingsPanelRef.current?.contains(event.target as Node)) setSettingsOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSettingsOpen(false);
+    };
+    document.addEventListener('pointerdown', dismiss);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', dismiss);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [settingsOpen]);
 
   const activate = (tab: TelegramAccountTab) => {
     setActiveTabId(tab.id);
@@ -153,28 +187,27 @@ export default function TelegramApp({ sdk, initialTabs }: Props) {
           </button>
         </div>
 
-        <div className="telegram-toolbar">
-          <span className="telegram-brand"><Send size={10} /> Telegram</span>
-          <button
-            type="button"
-            className="telegram-icon-button"
-            onClick={() => activeTab && surfaceRefs.current.get(activeTab.id)?.reload()}
-            title="Reload Telegram"
-            aria-label="Reload Telegram"
-          >
-            <RotateCw size={12} />
-          </button>
-          <button
-            type="button"
-            className="telegram-icon-button"
-            onClick={toggleMute}
-            title={activeTab?.isMuted ? 'Unmute Telegram' : 'Mute Telegram'}
-            aria-label={activeTab?.isMuted ? 'Unmute Telegram' : 'Mute Telegram'}
-          >
-            {activeTab?.isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-          </button>
-        </div>
       </header>
+
+      {settingsOpen && (
+        <aside ref={settingsPanelRef} className="telegram-settings-panel" aria-label="Telegram settings">
+          <div className="telegram-settings-heading">
+            <strong>Telegram</strong>
+            <span>Active account · {activeTab?.name ?? 'Unavailable'}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => activeTab && surfaceRefs.current.get(activeTab.id)?.reload()}
+            disabled={!activeTab}
+          >
+            <RotateCw size={14} /> Reload active account
+          </button>
+          <button type="button" onClick={toggleMute} disabled={!activeTab}>
+            {activeTab?.isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+            {activeTab?.isMuted ? 'Unmute account' : 'Mute account'}
+          </button>
+        </aside>
+      )}
 
       <section className="telegram-workspace">
         {activeTab && (

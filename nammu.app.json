@@ -2,13 +2,14 @@
   "manifestVersion": 1,
   "id": "os.nammu.telegram",
   "name": "Telegram",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "runtime": "integration",
   "entry": "app/index.html",
   "minNammuVersion": "0.8.3",
   "dataSchemaVersion": 1,
   "permissions": [
     "integration.web-surfaces",
+    "window.manage",
     "migration.legacy-storage",
     "migration.integration-profile"
   ],

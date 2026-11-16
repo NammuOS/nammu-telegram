@@ -118,9 +118,11 @@ describe('Nammu Telegram package', () => {
     expect(manifest.capabilities[0].navigation.mode).toBe('approved-origins');
     expect(manifest.permissions).toEqual([
       'integration.web-surfaces',
+      'window.manage',
       'migration.legacy-storage',
       'migration.integration-profile',
     ]);
+    expect(manifest.version).toBe('1.0.3');
     for (const source of [app, surface]) {
       expect(source).not.toMatch(/getPlatformCapabilities|geckoEvalChrome|ContextualIdentityService|__TAURI__|src-tauri|web_surface\.rs/);
     }
@@ -132,5 +134,15 @@ describe('Nammu Telegram package', () => {
     expect(app).toContain('partitionKey={activeTab.id}');
     expect(app).toContain('key={`${attempt}-${activeTab.id}`}');
     expect(app).not.toContain('{tabs.map((tab) => (\n          <TelegramSurface');
+  });
+
+  it('places Telegram controls behind the Core title-bar settings action', () => {
+    const app = readFileSync(resolve(root, 'src/telegram/TelegramApp.tsx'), 'utf8');
+    const styles = readFileSync(resolve(root, 'src/styles.css'), 'utf8');
+    expect(app).toContain("sdk.window.setTitlebarAction(action)");
+    expect(app).toContain("system.window-titlebar-action");
+    expect(app).toContain('telegram-settings-panel');
+    expect(app).not.toContain('telegram-toolbar');
+    expect(styles).toContain('.telegram-settings-panel');
   });
 });
